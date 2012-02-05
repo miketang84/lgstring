@@ -1,8 +1,9 @@
+#include <stdlib.h>
+#include <stdio.h>
 #include <float.h>
 #include <math.h>
 #include <string.h>
-#include <stdlib.h>
-#include <stdio.h>
+
 #include <lua.h>
 #include <lauxlib.h>
 
@@ -13,12 +14,279 @@
 #define TAGNUM 6
 #define PAIR 2
 
+
+
+static int startsWith(lua_State* L) {
+	int res;
+
+	const char* str = luaL_checkstring(L, 1);
+	const char* prefix = luaL_checkstring(L, 2);
+	
+	lua_settop(L, 2);
+	lua_pop(L, 2);
+
+	//size_t *len;
+	int str_len = strlen (str);
+	int prefix_len = strlen (prefix);
+		
+	if (str_len < prefix_len)
+		lua_pushboolean(L, 0);
+	else {
+		res = strncmp (str, prefix, prefix_len) == 0;
+		lua_pushboolean(L, res);
+	}
+
+	return 1;
+}
+
+static int endsWith(lua_State* L) {
+	int res;
+
+	const char* str = luaL_checkstring(L, 1);
+	const char* suffix = luaL_checkstring(L, 2);
+	
+	lua_settop(L, 2);
+	lua_pop(L, 2);
+
+	//size_t *len;
+	int str_len = strlen (str);
+	int suffix_len = strlen (suffix);
+		
+	if (str_len < suffix_len)
+		lua_pushboolean(L, 0);
+	else {
+		res = strcmp (str + str_len - suffix_len, suffix) == 0;
+		lua_pushboolean(L, res);
+	}
+
+	return 1;
+
+}
+
+
+// @param 1  flag
+// @param 2  the index of needle
+static int rfind(lua_State* L) {
+	int res_flag = 0;
+	char *p;
+	int i;
+
+	const char* str = luaL_checkstring(L, 1);
+	const char* needle = luaL_checkstring(L, 2);
+	lua_settop(L, 2);
+
+  	int needle_len = strlen (needle);
+  	int str_len = strlen (str);
+	lua_pop(L, 2);
+
+	if (needle_len == 0) {
+  		p = (char *)str;
+	}
+	else if (str_len < needle_len) {
+		p = NULL;
+	}
+	else {
+		p = (char *)(str + str_len - needle_len);
+		while (p >= str) {
+			for (i = 0; i < needle_len; i++)
+				if (p[i] != needle[i])
+					goto next;
+			break;
+next:
+			p--;
+		}
+	}
+	
+	// push the first return value: a flag
+	if (p == NULL || p < str)
+		res_flag = 0;
+	else 
+		res_flag = 1;
+	lua_pushboolean(L, res_flag);
+
+	// push the second returns, the offset
+	if (p == NULL || p < str)
+		lua_pushnil(L);
+	else
+		lua_pushnumber(L, (int)(p - str));
+	
+	return 2;
+}
+
+
+// remove whitespace
+// @param 1  str
+static int ltrim(lua_State* L) {
+	char *start;
+	const char* str = luaL_checkstring(L, 1);
+	lua_settop(L, 1);
+
+	for (start = (char *)str; *start && isspace (*start); start++) 
+		;
+
+	if (start != str) {
+		lua_pop(L, 1);
+		lua_pushstring(L, start);
+	} 
+	
+	return 1;
+}
+
+// remove whitespace
+// @param 1  str
+static int rtrim(lua_State* L) {
+	const char* str = luaL_checkstring(L, 1);
+	lua_settop(L, 1);
+
+	int len = strlen (str);
+	while (len--) {
+		if (!isspace (str[len]))
+			break;
+	}
+
+	int newlen = strlen(str);
+
+	if (newlen != len) {
+		// XXX: some odd, may improve
+		lua_pop(L, 1);
+		lua_pushlstring(L, str, len);
+	} 
+	
+	return 1;
+}
+
+// remove whitespace
+// @param 1  str
+static int trim(lua_State* L) {
+	char *start;
+	const char* str = luaL_checkstring(L, 1);
+	lua_settop(L, 1);
+
+	// trailing whitespace
+	int len = strlen (str);
+	while (len--) {
+		if (!isspace (str[len]))
+			break;
+	}
+	// leading whitespace
+	for (start = (char *)str; *start && isspace (*start); start++) 
+		;
+	int newlen = strlen(str);
+
+	if (start != str || newlen != len) {
+		lua_pop(L, 1);
+		lua_pushlstring(L, start, len - (start - str) + 1);
+	} 
+	
+	return 1;
+}
+
+
+#define MAXINT  100000
+
+// split string to table string list
+// @param 1  str
+static int split(lua_State* L) {
+	unsigned int n = 1;
+	const char *remainder;
+	char *s;
+
+	const char* str = luaL_checkstring(L, 1);
+	const char* delimiter = luaL_checkstring(L, 2);
+	int max_tokens = luaL_optint(L, 3, MAXINT);
+	lua_settop(L, 2);	
+
+	// create a new table at stack top
+	lua_newtable(L);
+
+	remainder = str;
+	s = strstr (remainder, delimiter);
+	if (s) {
+		int delimiter_len = strlen (delimiter);
+
+		while (--max_tokens && s) {
+			int len;
+
+			len = s - remainder;
+			// add to lua string
+			lua_pushlstring(L, remainder, len);
+			// add to return table
+			lua_rawseti(L, -2, n);
+			n++;
+			remainder = s + delimiter_len;
+			s = strstr (remainder, delimiter);
+		}
+	}
+	
+	if (*str) {
+		// add to lua string
+		lua_pushstring(L, remainder);
+		// add to return table
+		lua_rawseti(L, -2, n);
+    }
+
+	// return table value
+	return 1;
+}
+
+
+static int splitset(lua_State* L) {
+	int delim_table[256];
+	int n_tokens;
+	const char *s;
+	const char *current;
+	char *token;
+
+	const char* str = luaL_checkstring(L, 1);
+	const char* delimiters = luaL_checkstring(L, 2);
+	int max_tokens = luaL_optint(L, 3, MAXINT);
+	lua_settop(L, 2);	
+	lua_pop(L, 2);
+
+	// create a new table at stack top
+	lua_newtable(L);
+	
+	if (*str == '\0') {
+		//lua_pop(L, 2);
+		lua_pushstring(L, "");
+		lua_rawseti(L, -2, 1);
+		// return immediately
+		return 1;
+	}
+
+	memset (delim_table, FALSE, sizeof (delim_table));
+	for (s = delimiters; *s != '\0'; ++s)
+		delim_table[*(char *)s] = TRUE;
+
+	n_tokens = 1;
+
+	s = current = str;
+	while (*s != '\0') {
+		if (delim_table[*(char *)s] && n_tokens + 1 <= max_tokens) {
+			lua_pushlstring(L, current, s - current);
+			// add to return table
+			lua_rawseti(L, -2, n_tokens);
+			++n_tokens;
+
+			current = s + 1;
+		}
+		++s;
+	}
+
+	lua_pushlstring(L, current, s - current);
+	// add to return table
+	lua_rawseti(L, -2, n_tokens);
+
+	return 1;
+}
+
+
 const char tagset[TAGNUM][PAIR][3] = {
 	{ "{{", "}}" },
 	{ "{%", "%}" },
 	{ "{(", ")}" },
-	{ "{-", "-}" },
 	{ "{^", "^}" },
+	{ "{-", "-}" },
 	{ "{<", ">}" }
 };
 
@@ -119,6 +387,15 @@ static int matchtagset(lua_State *L) {
 
 static const struct luaL_Reg lgstringlib [] = {
 	{"matchtagset", matchtagset},
+	{"startsWith", startsWith},
+	{"endsWith", endsWith},
+	{"rfind", rfind},
+	{"ltrim", ltrim},
+	{"rtrim", rtrim},
+	{"trim", trim},
+	{"split", split},
+	{"splitset", splitset},
+	
 	{NULL, NULL}
 };
 
