@@ -88,14 +88,18 @@ static int rfind(lua_State* L) {
 	else {
 		p = (char *)(str + str_len - needle_len);
 		while (p >= str) {
-			for (i = 0; i < needle_len; i++)
+			for (i = 0; i < needle_len; i++) {
 				if (p[i] != needle[i])
 					goto next;
+			}
 			break;
 next:
 			p--;
 		}
 	}
+	
+	//printf("%s\n", str);
+	//printf("%s\n", p);	
 	
 	// push the first return value: a flag
 	if (p == NULL || p < str)
@@ -108,7 +112,7 @@ next:
 	if (p == NULL || p < str)
 		lua_pushnil(L);
 	else
-		lua_pushnumber(L, (int)(p - str));
+		lua_pushnumber(L, (int)(p - str + 1));
 	
 	return 2;
 }
