@@ -64,7 +64,7 @@ static int endsWith(lua_State* L) {
 }
 
 
-// @param 1  flag
+// @param 1  original string
 // @param 2  the index of needle
 static int rfind(lua_State* L) {
 	int res_flag = 0;
@@ -98,21 +98,15 @@ next:
 		}
 	}
 	
-	//printf("%s\n", str);
-	//printf("%s\n", p);	
-	
-	// push the first return value: a flag
-	if (p == NULL || p < str)
-		res_flag = 0;
-	else 
-		res_flag = 1;
-	lua_pushboolean(L, res_flag);
-
-	// push the second returns, the offset
-	if (p == NULL || p < str)
+	// push the first return, the start offset
+	if (p == NULL || p < str) {
 		lua_pushnil(L);
-	else
+		lua_pushnil(L);		
+	}
+	else {
 		lua_pushnumber(L, (int)(p - str + 1));
+		lua_pushnumber(L, (int)(p - str + needle_len));		
+	}
 	
 	return 2;
 }
