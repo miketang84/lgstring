@@ -63,6 +63,34 @@ static int endsWith(lua_State* L) {
 
 }
 
+/*
+// @param 1  original string
+// @param 2  starti
+// @param 3  endi
+static int bsub(lua_State* L) {
+	int res_flag = 0;
+	char *p;
+	int i;
+	size_t str_len;
+	
+	const char * str = luaL_checklstring(L, 1, &str_len);
+	lua_Integer starti = luaL_checkinteger(L, 2);
+	lua_Integer endi = luaL_checkinteger(L, 3);
+	lua_settop(L, 3);
+	lua_pop(L, 3);
+
+	printf("%d\n", str_len);
+	if (starti < 0) { starti += str_len + 1; }
+	if (endi < 0) { endi += str_len + 1; }
+
+	if (starti > endi) { lua_pushlstring(L, "", 0); return 1; }	
+	printf("%d %d\n", starti, endi);
+	printf("%d %d\n", starti, endi);	
+	lua_pushlstring(L, str + starti - 1, endi - starti + 1);
+
+	return 1;
+}
+*/
 
 // @param 1  original string
 // @param 2  the index of needle
@@ -70,13 +98,12 @@ static int rfind(lua_State* L) {
 	int res_flag = 0;
 	char *p;
 	int i;
-
-	const char* str = luaL_checkstring(L, 1);
-	const char* needle = luaL_checkstring(L, 2);
+  	size_t needle_len, str_len;
+	
+	const char* str = luaL_checklstring(L, 1, &str_len);
+	const char* needle = luaL_checklstring(L, 2, &needle_len);
 	lua_settop(L, 2);
 
-  	int needle_len = strlen (needle);
-  	int str_len = strlen (str);
 	lua_pop(L, 2);
 
 	if (needle_len == 0) {
@@ -387,6 +414,7 @@ static const struct luaL_Reg lgstringlib [] = {
 	{"matchtagset", matchtagset},
 	{"startsWith", startsWith},
 	{"endsWith", endsWith},
+//	{"bsub", bsub},	
 	{"rfind", rfind},
 	{"ltrim", ltrim},
 	{"rtrim", rtrim},
