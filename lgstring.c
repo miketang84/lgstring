@@ -11,7 +11,7 @@
 #define TRUE 1
 #define FALSE 0
 
-#define TAGNUM 6
+#define TAGNUM 7
 #define PAIR 2
 
 
@@ -311,6 +311,7 @@ const char tagset[TAGNUM][PAIR][3] = {
 	{ "{%", "%}" },
 	{ "{(", ")}" },
 	{ "{^", "^}" },
+	{ "{*", "*}" },	
 	{ "{-", "-}" },
 	{ "{<", ">}" }
 };
