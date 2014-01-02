@@ -11,7 +11,7 @@
 #define TRUE 1
 #define FALSE 0
 
-#define TAGNUM 7
+#define TAGNUM 8
 #define PAIR 2
 
 
@@ -308,6 +308,7 @@ static int splitset(lua_State* L) {
 
 const char tagset[TAGNUM][PAIR][3] = {
 	{ "{{", "}}" },
+	{ "{_", "_}" },
 	{ "{%", "%}" },
 	{ "{(", ")}" },
 	{ "{^", "^}" },
